@@ -1,0 +1,59 @@
+{
+  "session": {
+    "session_id": "session_20260722_011240",
+    "user_id": "chapter8_user",
+    "generated_at": "2026-07-22T01:15:12"
+  },
+  "stats": {
+    "session_id": "session_20260722_011240",
+    "user_id": "chapter8_user",
+    "session_start": "2026-07-22T01:12:40",
+    "duration_seconds": 152.02,
+    "documents_loaded": 1,
+    "questions_asked": 1,
+    "notes_added": 1,
+    "current_documents": [
+      "chapter8_notes.md"
+    ],
+    "memory_stats": {
+      "success": true,
+      "action": "stats",
+      "result": {
+        "working": 1,
+        "episodic": 2,
+        "semantic": 1
+      }
+    },
+    "rag_stats": {
+      "success": true,
+      "action": "stats",
+      "data": {
+        "document_count": 2,
+        "source_count": 1,
+        "sources": [
+          "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter8\\knowledge_base\\chapter8_notes.md"
+        ],
+        "embedding_model": "TFIDFEmbedding",
+        "chunk_size": 300,
+        "chunk_overlap": 60
+      }
+    }
+  },
+  "recent_learning": {
+    "success": true,
+    "action": "search",
+    "result": {
+      "count": 1,
+      "items": [
+        {
+          "id": "b48d01b942a444d0b055a29a1463e6b8",
+          "content": "在会话 session_20260722_011240 中加载了学习文档《chapter8_notes.md》。",
+          "memory_type": "episodic",
+          "importance": 0.9,
+          "metadata": {},
+          "created_at": "2026-07-22T01:13:23"
+        }
+      ]
+    }
+  }
+}
