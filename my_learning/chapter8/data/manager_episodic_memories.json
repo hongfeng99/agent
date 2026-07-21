@@ -1,0 +1,13 @@
+[
+  {
+    "id": "822fbb24337949afa34b6165c8d950b9",
+    "content": "我已经完成了 SemanticMemory 的基础实现。",
+    "memory_type": "episodic",
+    "importance": 0.8,
+    "metadata": {
+      "category": "learning_event",
+      "chapter": 8
+    },
+    "created_at": "2026-07-21T17:59:51"
+  }
+]

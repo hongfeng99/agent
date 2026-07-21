@@ -1,0 +1,14 @@
+[
+  {
+    "id": "5d1abec4ecc54dfd9337bf7ab1ae6532",
+    "content": "我已经完成了 MemoryManager 的基础实现。",
+    "memory_type": "episodic",
+    "importance": 0.9,
+    "metadata": {
+      "chapter": 8,
+      "status": "已完成",
+      "next_task": "memory lifecycle"
+    },
+    "created_at": "2026-07-21T18:09:09"
+  }
+]

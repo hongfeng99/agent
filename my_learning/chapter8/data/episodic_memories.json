@@ -1,0 +1,25 @@
+[
+  {
+    "id": "6857a32efd974f59a00e7eef77660a4a",
+    "content": "用户完成了 Hello-Agents Chapter 7 的学习。",
+    "memory_type": "episodic",
+    "importance": 1.0,
+    "metadata": {
+      "event_type": "learning_progress",
+      "source": "conversation",
+      "status": "completed"
+    },
+    "created_at": "2026-07-21T16:13:03"
+  },
+  {
+    "id": "cbc6705222044c09ad05dd4141e038c6",
+    "content": "用户开始学习 Hello-Agents Chapter 8。",
+    "memory_type": "episodic",
+    "importance": 1.0,
+    "metadata": {
+      "event_type": "learning_progress",
+      "status": "confirmed"
+    },
+    "created_at": "2026-07-21T16:13:03"
+  }
+]
