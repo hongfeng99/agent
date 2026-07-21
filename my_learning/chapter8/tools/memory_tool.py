@@ -211,8 +211,11 @@ class MemoryTool:
             )
 
             return self._error_response(
-                f"不支持的 action：{action}。"
-                f"支持的操作包括：{supported_actions}。"
+                message=(
+                    f"不支持的 action：{action}。"
+                    f"支持的操作包括：{supported_actions}。"
+                ),
+                action=action,
             )
 
         try:
