@@ -1,0 +1,38 @@
+{
+  "note_20260722_161135_638877": {
+    "id": "note_20260722_161135_638877",
+    "title": "Chapter 9 当前阻塞",
+    "type": "blocker",
+    "tags": [
+      "chapter9",
+      "terminal-tool"
+    ],
+    "created_at": "2026-07-22T16:11:35",
+    "updated_at": "2026-07-22T16:11:35",
+    "file_path": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\note_context_demo\\note_20260722_161135_638877.md"
+  },
+  "note_20260722_161135_641215": {
+    "id": "note_20260722_161135_641215",
+    "title": "TerminalTool 下一步任务",
+    "type": "action",
+    "tags": [
+      "chapter9",
+      "terminal-tool"
+    ],
+    "created_at": "2026-07-22T16:11:35",
+    "updated_at": "2026-07-22T16:11:35",
+    "file_path": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\note_context_demo\\note_20260722_161135_641215.md"
+  },
+  "note_20260722_161135_642512": {
+    "id": "note_20260722_161135_642512",
+    "title": "ContextBuilder 阶段结论",
+    "type": "conclusion",
+    "tags": [
+      "chapter9",
+      "context-builder"
+    ],
+    "created_at": "2026-07-22T16:11:35",
+    "updated_at": "2026-07-22T16:11:35",
+    "file_path": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\note_context_demo\\note_20260722_161135_642512.md"
+  }
+}

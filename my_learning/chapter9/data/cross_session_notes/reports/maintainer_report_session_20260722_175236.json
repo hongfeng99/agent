@@ -1,0 +1,25 @@
+{
+  "session_id": "session_20260722_175236",
+  "project_name": "cross_session_demo",
+  "duration_seconds": 0.010737,
+  "runs": 1,
+  "terminal_packets": 4,
+  "notes_created": 1,
+  "history_messages": 2,
+  "note_summary": {
+    "total_notes": 1,
+    "type_distribution": {
+      "blocker": 1
+    },
+    "recent_notes": [
+      {
+        "id": "note_20260722_175236_423680",
+        "title": "发现问题：请分析 DemoService 的实现。",
+        "type": "blocker",
+        "updated_at": "2026-07-22T17:52:36"
+      }
+    ]
+  },
+  "generated_at": "2026-07-22T17:52:36",
+  "report_file": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\cross_session_notes\\reports\\maintainer_report_session_20260722_175236.json"
+}

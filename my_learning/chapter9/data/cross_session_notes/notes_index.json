@@ -1,0 +1,30 @@
+{
+  "note_20260722_175236_423680": {
+    "id": "note_20260722_175236_423680",
+    "title": "发现问题：请分析 DemoService 的实现。",
+    "type": "blocker",
+    "tags": [
+      "cross_session_demo",
+      "auto_detected",
+      "session_20260722_175236",
+      "auto_key_f3db2c24e595"
+    ],
+    "created_at": "2026-07-22T17:52:36",
+    "updated_at": "2026-07-22T17:52:36",
+    "file_path": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\cross_session_notes\\note_20260722_175236_423680.md"
+  },
+  "note_20260722_175236_432999": {
+    "id": "note_20260722_175236_432999",
+    "title": "行动计划：请根据之前发现的问题，制定 DemoService 的下一步计划。",
+    "type": "action",
+    "tags": [
+      "cross_session_demo",
+      "planning",
+      "session_20260722_175236",
+      "auto_key_1035948d4713"
+    ],
+    "created_at": "2026-07-22T17:52:36",
+    "updated_at": "2026-07-22T17:52:36",
+    "file_path": "D:\\Desktop files\\agent\\hello-agents\\my_learning\\chapter9\\data\\cross_session_notes\\note_20260722_175236_432999.md"
+  }
+}
