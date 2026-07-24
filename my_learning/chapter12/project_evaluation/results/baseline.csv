@@ -1,0 +1,4 @@
+﻿id,name,passed,actual_status,duration_seconds,missing_keywords,missing_symbols,found_forbidden_phrases,error
+gssc_full_analysis,完整分析 GSSC,True,completed,30.3,,,,
+gssc_method_relationship,分析方法调用关系,True,completed,49.83,,,,
+gssc_limitations,分析实现局限,True,completed,37.53,,,,

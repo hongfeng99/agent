@@ -1,0 +1,61 @@
+{
+    "defaults": {
+      "expected_status": "completed",
+      "required_keywords": [
+        "Gather",
+        "Select",
+        "Structure",
+        "Compress"
+      ],
+      "required_symbols": [
+        "ContextBuilder.build",
+        "ContextBuilder._gather",
+        "ContextBuilder._select",
+        "ContextBuilder._structure",
+        "ContextBuilder._compress"
+      ],
+      "required_data_source_keywords": [
+        "MCP",
+        "ContextBuilder"
+      ],
+      "forbidden_phrases": [
+        "还需要继续读取",
+        "需要继续读取源码",
+        "路径可能有误",
+        "无法读取源码",
+        "分析尚未完成"
+      ],
+      "max_seconds": 120
+    },
+    "cases": [
+      {
+        "id": "gssc_full_analysis",
+        "name": "完整分析 GSSC",
+        "question": "分析 ContextBuilder 的主要职责和 GSSC 流程。"
+      },
+      {
+        "id": "gssc_method_relationship",
+        "name": "分析方法调用关系",
+        "question": "根据真实代码解释 ContextBuilder 中 build、Gather、Select、Structure 和 Compress 的调用关系与数据传递过程。",
+        "required_keywords": [
+          "Gather",
+          "Select",
+          "Structure",
+          "Compress",
+          "build"
+        ]
+      },
+      {
+        "id": "gssc_limitations",
+        "name": "分析实现局限",
+        "question": "根据真实代码说明 ContextBuilder 的主要职责、GSSC 四阶段以及当前实现的局限。",
+        "required_keywords": [
+          "Gather",
+          "Select",
+          "Structure",
+          "Compress",
+          "局限"
+        ]
+      }
+    ]
+  }
