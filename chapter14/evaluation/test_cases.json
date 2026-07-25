@@ -1,0 +1,29 @@
+[
+    {
+      "id": "mcp_value",
+      "topic": "MCP 协议对智能体开发有什么价值？",
+      "expected_keywords": [
+        "MCP",
+        "工具",
+        "协议"
+      ]
+    },
+    {
+      "id": "context_engineering",
+      "topic": "上下文工程如何提高智能体系统的可靠性？",
+      "expected_keywords": [
+        "上下文",
+        "智能体",
+        "可靠性"
+      ]
+    },
+    {
+      "id": "rag_memory_comparison",
+      "topic": "RAG 与智能体长期记忆有什么区别和联系？",
+      "expected_keywords": [
+        "RAG",
+        "记忆",
+        "检索"
+      ]
+    }
+  ]

@@ -190,3 +190,7 @@ chapter14/workspace/reports/*
 
 !chapter14/workspace/notes/.gitkeep
 !chapter14/workspace/reports/.gitkeep
+
+
+chapter14/evaluation/results/*
+!chapter14/evaluation/results/.gitkeep
