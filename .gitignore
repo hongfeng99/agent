@@ -178,3 +178,15 @@ my_learning/chapter8/reports/*.json
 # 不要忽略各 chapter/tests 目录中的正式 pytest 文件。
 /test_*.py
 !/test_tools.py
+
+
+.env
+chapter14/workspace/
+__pycache__/
+.pytest_cache/
+
+chapter14/workspace/notes/*
+chapter14/workspace/reports/*
+
+!chapter14/workspace/notes/.gitkeep
+!chapter14/workspace/reports/.gitkeep
