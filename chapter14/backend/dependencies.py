@@ -1,8 +1,11 @@
+from collections.abc import Callable
+
 from dotenv import load_dotenv
 from hello_agents import HelloAgentsLLM
 
 from chapter14.backend.agent import (
     DeepResearchAgent,
+    EventHandler,
 )
 from chapter14.backend.services.planning_service import (
     PlanningService,
@@ -16,14 +19,25 @@ from chapter14.backend.services.search_service import (
 from chapter14.backend.services.summarization_service import (
     SummarizationService,
 )
+from chapter14.backend.task_manager import (
+    ResearchJobStore,
+)
 
 
-def build_deep_research_agent() -> DeepResearchAgent:
+AgentFactory = Callable[
+    [EventHandler | None],
+    DeepResearchAgent,
+]
+
+
+def create_deep_research_agent(
+    event_handler: EventHandler | None = None,
+) -> DeepResearchAgent:
     """
-    创建一套完整的 DeepResearchAgent 及其依赖服务。
+    创建完整的 DeepResearchAgent。
 
-    FastAPI 会通过 Depends 调用这个函数。
-    测试时可以替换这个依赖，避免调用真实模型和搜索接口。
+    event_handler 用于接收 Agent 运行事件，
+    后台任务状态和后续 SSE 都会使用它。
     """
 
     load_dotenv()
@@ -54,4 +68,32 @@ def build_deep_research_agent() -> DeepResearchAgent:
         searcher=searcher,
         summarizer=summarizer,
         reporter=reporter,
+        event_handler=event_handler,
     )
+
+
+def build_deep_research_agent() -> DeepResearchAgent:
+    """
+    为同步 /research 接口创建 Agent。
+    """
+
+    return create_deep_research_agent()
+
+
+def get_agent_factory() -> AgentFactory:
+    """
+    返回后台任务使用的 Agent 工厂函数。
+    """
+
+    return create_deep_research_agent
+
+
+_job_store = ResearchJobStore()
+
+
+def get_research_job_store() -> ResearchJobStore:
+    """
+    返回全局后台任务状态仓库。
+    """
+
+    return _job_store

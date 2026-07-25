@@ -1,4 +1,5 @@
 from fastapi import (
+    BackgroundTasks,
     Depends,
     FastAPI,
     HTTPException,
@@ -9,11 +10,21 @@ from chapter14.backend.agent import (
     DeepResearchAgent,
 )
 from chapter14.backend.api_models import (
+    CreateResearchJobResponse,
+    ResearchJobResponse,
     ResearchRequest,
     ResearchResponse,
 )
 from chapter14.backend.dependencies import (
+    AgentFactory,
     build_deep_research_agent,
+    get_agent_factory,
+    get_research_job_store,
+)
+from chapter14.backend.task_manager import (
+    ResearchJobNotFoundError,
+    ResearchJobStore,
+    execute_research_job,
 )
 
 
@@ -23,7 +34,7 @@ app = FastAPI(
         "基于任务规划、网络搜索、资料总结和报告生成的"
         "自动化深度研究智能体。"
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 
@@ -46,7 +57,7 @@ def health_check() -> dict[str, str]:
     "/research",
     response_model=ResearchResponse,
     status_code=status.HTTP_200_OK,
-    summary="执行深度研究任务",
+    summary="同步执行深度研究任务",
 )
 def create_research(
     request: ResearchRequest,
@@ -55,10 +66,9 @@ def create_research(
     ),
 ) -> ResearchResponse:
     """
-    同步执行一次完整的深度研究任务。
+    同步执行完整研究流程。
 
-    当前接口会等待规划、搜索、总结和报告生成全部完成后，
-    再将最终结果返回给客户端。
+    该接口会等待全部研究完成后再返回。
     """
 
     try:
@@ -76,14 +86,12 @@ def create_research(
             ),
         ) from exc
 
-    run_id = agent.last_run_id
-
-    if not run_id:
+    if not agent.last_run_id:
         raise HTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail="研究任务完成，但没有生成运行编号。",
+            detail="研究完成，但没有生成运行编号。",
         )
 
     report_path = None
@@ -94,11 +102,80 @@ def create_research(
         )
 
     return ResearchResponse(
-        run_id=run_id,
+        run_id=agent.last_run_id,
         topic=state.topic,
         status=state.status.value,
         task_count=len(state.tasks),
         summary_count=len(state.summaries),
         report=state.final_report,
         report_path=report_path,
+    )
+
+
+@app.post(
+    "/research/tasks",
+    response_model=CreateResearchJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="创建后台深度研究任务",
+)
+def create_background_research(
+    request: ResearchRequest,
+    background_tasks: BackgroundTasks,
+    store: ResearchJobStore = Depends(
+        get_research_job_store
+    ),
+    agent_factory: AgentFactory = Depends(
+        get_agent_factory
+    ),
+) -> CreateResearchJobResponse:
+    """
+    创建后台研究任务并立即返回 job_id。
+    """
+
+    job = store.create(
+        request.topic
+    )
+
+    background_tasks.add_task(
+        execute_research_job,
+        job.job_id,
+        request.topic,
+        store,
+        agent_factory,
+    )
+
+    return CreateResearchJobResponse(
+        job_id=job.job_id,
+        status=job.status,
+        status_url=(
+            f"/research/tasks/{job.job_id}"
+        ),
+    )
+
+
+@app.get(
+    "/research/tasks/{job_id}",
+    response_model=ResearchJobResponse,
+    summary="查询后台研究任务状态",
+)
+def get_background_research(
+    job_id: str,
+    store: ResearchJobStore = Depends(
+        get_research_job_store
+    ),
+) -> ResearchJobResponse:
+    """
+    查询后台研究任务的进度、状态和最终报告。
+    """
+
+    try:
+        job = store.get(job_id)
+    except ResearchJobNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="没有找到指定的研究任务。",
+        ) from exc
+
+    return ResearchJobResponse.model_validate(
+        job.model_dump()
     )
