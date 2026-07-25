@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
-
+from datetime import datetime, timezone
+from typing import Any
 
 class ResearchRequest(BaseModel):
     """
@@ -125,3 +126,46 @@ class ResearchJobResponse(ResearchJobRecord):
     """
 
     pass
+
+
+
+class ResearchEvent(BaseModel):
+    """
+    后台研究任务产生的单条运行事件。
+
+    sequence:
+        当前任务内部的事件序号，从 1 开始。
+
+    event_type:
+        事件类型，例如 planning_started。
+
+    message:
+        面向用户显示的事件说明。
+
+    data:
+        与事件相关的结构化数据。
+    """
+
+    sequence: int = Field(
+        ge=1,
+    )
+
+    job_id: str = Field(
+        min_length=1,
+    )
+
+    event_type: str = Field(
+        min_length=1,
+    )
+
+    message: str
+
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+    )
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(
+            timezone.utc
+        )
+    )

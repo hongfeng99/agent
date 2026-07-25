@@ -9,6 +9,7 @@ from chapter14.backend.agent import (
 )
 from chapter14.backend.api_models import (
     JobStatus,
+    ResearchEvent,
     ResearchJobRecord,
 )
 from chapter14.backend.models import (
@@ -32,14 +33,23 @@ class ResearchJobStore:
     """
     线程安全的内存任务状态仓库。
 
-    当前版本适合本地学习和单进程运行。
-    服务重启后，内存中的任务状态会消失。
+    除了保存任务状态，还保存每个任务产生的事件历史。
     """
 
     def __init__(self) -> None:
         self._jobs: dict[
             str,
             ResearchJobRecord,
+        ] = {}
+
+        self._events: dict[
+            str,
+            list[ResearchEvent],
+        ] = {}
+
+        self._next_sequence: dict[
+            str,
+            int,
         ] = {}
 
         self._lock = RLock()
@@ -61,6 +71,17 @@ class ResearchJobStore:
 
         with self._lock:
             self._jobs[job_id] = job
+            self._events[job_id] = []
+            self._next_sequence[job_id] = 1
+
+        self.append_event(
+            job_id=job_id,
+            event_type="job_queued",
+            message="研究任务已创建，等待执行。",
+            data={
+                "topic": topic,
+            },
+        )
 
         return job.model_copy(
             deep=True
@@ -120,15 +141,88 @@ class ResearchJobStore:
                 deep=True
             )
 
+    def append_event(
+        self,
+        job_id: str,
+        event_type: str,
+        message: str,
+        data: dict[str, Any] | None = None,
+    ) -> ResearchEvent:
+        """
+        为后台任务追加一条运行事件。
+        """
+
+        with self._lock:
+            if job_id not in self._jobs:
+                raise ResearchJobNotFoundError(
+                    job_id
+                )
+
+            sequence = self._next_sequence[
+                job_id
+            ]
+
+            event = ResearchEvent(
+                sequence=sequence,
+                job_id=job_id,
+                event_type=event_type,
+                message=message,
+                data=data or {},
+            )
+
+            self._events[job_id].append(
+                event
+            )
+
+            self._next_sequence[job_id] = (
+                sequence + 1
+            )
+
+            return event.model_copy(
+                deep=True
+            )
+
+    def get_events(
+        self,
+        job_id: str,
+        after_sequence: int = 0,
+    ) -> list[ResearchEvent]:
+        """
+        获取指定序号之后产生的事件。
+
+        after_sequence=0 表示获取全部事件。
+        """
+
+        if after_sequence < 0:
+            raise ValueError(
+                "after_sequence 不能小于 0。"
+            )
+
+        with self._lock:
+            if job_id not in self._jobs:
+                raise ResearchJobNotFoundError(
+                    job_id
+                )
+
+            return [
+                event.model_copy(
+                    deep=True
+                )
+                for event in self._events[job_id]
+                if event.sequence > after_sequence
+            ]
+
     def clear(self) -> None:
         """
-        清空所有任务。
+        清空任务和事件。
 
         主要供自动化测试使用。
         """
 
         with self._lock:
             self._jobs.clear()
+            self._events.clear()
+            self._next_sequence.clear()
 
 
 def create_job_event_handler(
@@ -136,14 +230,9 @@ def create_job_event_handler(
     job_id: str,
 ) -> EventHandler:
     """
-    为指定后台任务创建 Agent 事件处理函数。
+    将 DeepResearchAgent 事件写入任务仓库。
 
-    DeepResearchAgent 发送的事件会被转换为：
-
-    1. 当前阶段；
-    2. 进度百分比；
-    3. 当前提示信息；
-    4. 已完成子任务数量。
+    除了保存事件历史，还会同步更新任务进度。
     """
 
     def handle_event(
@@ -151,6 +240,13 @@ def create_job_event_handler(
         message: str,
         data: dict[str, Any],
     ) -> None:
+        store.append_event(
+            job_id=job_id,
+            event_type=event_type,
+            message=message,
+            data=data,
+        )
+
         if event_type == "planning_started":
             store.update(
                 job_id,
@@ -163,7 +259,10 @@ def create_job_event_handler(
 
         if event_type == "planning_completed":
             task_count = int(
-                data.get("task_count", 0)
+                data.get(
+                    "task_count",
+                    0,
+                )
             )
 
             store.update(
@@ -213,7 +312,9 @@ def create_job_event_handler(
             return
 
         if event_type == "task_completed":
-            current_job = store.get(job_id)
+            current_job = store.get(
+                job_id
+            )
 
             completed_count = (
                 current_job.completed_task_count
@@ -237,7 +338,10 @@ def create_job_event_handler(
                 status=JobStatus.RUNNING,
                 stage="researching",
                 message=message,
-                progress=min(progress, 85),
+                progress=min(
+                    progress,
+                    85,
+                ),
                 completed_task_count=(
                     completed_count
                 ),
@@ -260,7 +364,7 @@ def create_job_event_handler(
                 status=JobStatus.RUNNING,
                 stage="completed",
                 message=message,
-                progress=100,
+                progress=99,
             )
             return
 
@@ -288,10 +392,7 @@ def execute_research_job(
     agent_factory: AgentFactory,
 ) -> None:
     """
-    在后台执行一次完整的深度研究任务。
-
-    该函数会捕获异常并保存失败状态，
-    避免后台异常直接影响 FastAPI 请求。
+    在后台执行一次完整研究任务。
     """
 
     store.update(
@@ -301,6 +402,15 @@ def execute_research_job(
         message="正在初始化深度研究智能体。",
         progress=1,
         error_message=None,
+    )
+
+    store.append_event(
+        job_id=job_id,
+        event_type="job_started",
+        message="后台研究任务开始执行。",
+        data={
+            "topic": topic,
+        },
     )
 
     event_handler = create_job_event_handler(
@@ -313,7 +423,9 @@ def execute_research_job(
             event_handler
         )
 
-        state = agent.research(topic)
+        state = agent.research(
+            topic
+        )
 
         completed_task_count = sum(
             task.status
@@ -327,6 +439,16 @@ def execute_research_job(
             report_path = str(
                 agent.last_report_path
             )
+
+        store.append_event(
+            job_id=job_id,
+            event_type="job_completed",
+            message="后台研究任务执行完成。",
+            data={
+                "run_id": agent.last_run_id,
+                "report_path": report_path,
+            },
+        )
 
         store.update(
             job_id,
@@ -345,6 +467,18 @@ def execute_research_job(
         )
 
     except Exception as exc:
+        store.append_event(
+            job_id=job_id,
+            event_type="job_failed",
+            message="后台研究任务执行失败。",
+            data={
+                "error_type": (
+                    type(exc).__name__
+                ),
+                "error_message": str(exc),
+            },
+        )
+
         store.update(
             job_id,
             status=JobStatus.FAILED,

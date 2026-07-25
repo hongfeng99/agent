@@ -1,16 +1,23 @@
+import asyncio
+import json
 from fastapi import (
     BackgroundTasks,
     Depends,
     FastAPI,
+    Header,
     HTTPException,
+    Query,
+    Request,
     status,
 )
-
+from fastapi.responses import StreamingResponse
 from chapter14.backend.agent import (
     DeepResearchAgent,
 )
 from chapter14.backend.api_models import (
     CreateResearchJobResponse,
+    JobStatus,
+    ResearchEvent,
     ResearchJobResponse,
     ResearchRequest,
     ResearchResponse,
@@ -178,4 +185,159 @@ def get_background_research(
 
     return ResearchJobResponse.model_validate(
         job.model_dump()
+    )
+
+
+
+
+
+def format_sse_event(
+    event: ResearchEvent,
+) -> str:
+    """
+    将 ResearchEvent 转换为 SSE 文本格式。
+    """
+
+    payload = {
+        "sequence": event.sequence,
+        "job_id": event.job_id,
+        "message": event.message,
+        "data": event.data,
+        "created_at": (
+            event.created_at.isoformat()
+        ),
+    }
+
+    payload_text = json.dumps(
+        payload,
+        ensure_ascii=False,
+    )
+
+    return (
+        f"id: {event.sequence}\n"
+        f"event: {event.event_type}\n"
+        f"data: {payload_text}\n\n"
+    )
+
+
+async def generate_research_events(
+    job_id: str,
+    request: Request,
+    store: ResearchJobStore,
+    after_sequence: int,
+):
+    """
+    持续读取任务事件并输出 SSE 数据。
+
+    当任务完成、失败或客户端断开连接时结束。
+    """
+
+    current_sequence = after_sequence
+
+    while True:
+        if await request.is_disconnected():
+            return
+
+        events = store.get_events(
+            job_id=job_id,
+            after_sequence=current_sequence,
+        )
+
+        for event in events:
+            current_sequence = (
+                event.sequence
+            )
+
+            yield format_sse_event(
+                event
+            )
+
+        job = store.get(
+            job_id
+        )
+
+        terminal_statuses = {
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+        }
+
+        if (
+            job.status in terminal_statuses
+            and not events
+        ):
+            return
+
+        await asyncio.sleep(0.5)
+
+
+@app.get(
+    "/research/tasks/{job_id}/events",
+    summary="订阅后台研究任务事件",
+)
+async def stream_background_research_events(
+    job_id: str,
+    request: Request,
+    after: int = Query(
+        default=0,
+        ge=0,
+        description="只返回该事件序号之后的事件",
+    ),
+    last_event_id: str | None = Header(
+        default=None,
+        alias="Last-Event-ID",
+    ),
+    store: ResearchJobStore = Depends(
+        get_research_job_store
+    ),
+) -> StreamingResponse:
+    """
+    通过 Server-Sent Events 实时推送研究进度。
+
+    浏览器断线重连时，可以通过 Last-Event-ID
+    从上一次收到的事件之后继续获取。
+    """
+
+    try:
+        store.get(job_id)
+    except ResearchJobNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="没有找到指定的研究任务。",
+        ) from exc
+
+    after_sequence = after
+
+    if last_event_id is not None:
+        try:
+            header_sequence = int(
+                last_event_id
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_400_BAD_REQUEST
+                ),
+                detail=(
+                    "Last-Event-ID 必须是整数。"
+                ),
+            ) from exc
+
+        after_sequence = max(
+            after_sequence,
+            header_sequence,
+        )
+
+    return StreamingResponse(
+        generate_research_events(
+            job_id=job_id,
+            request=request,
+            store=store,
+            after_sequence=after_sequence,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
