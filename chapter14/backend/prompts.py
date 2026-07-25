@@ -1,7 +1,12 @@
 from datetime import date
+
 from chapter14.backend.models import (
     ResearchTask,
     SearchResult,
+    TaskSummary,
+)
+from chapter14.backend.utils.source_utils import (
+    normalize_url,
 )
 
 PLANNER_SYSTEM_PROMPT = """
@@ -223,4 +228,235 @@ URL：{result.url}
 ## 局限性
 
 说明当前资料存在的不足、时效性或证据限制。
+""".strip()
+
+
+
+
+
+REPORTER_SYSTEM_PROMPT = """
+你是一名严谨的深度研究报告撰写专家。
+
+你的职责是：
+
+1. 根据多个研究子任务的总结撰写完整报告；
+2. 综合不同子任务中的信息，而不是简单拼接；
+3. 只使用提供的研究总结和资料来源；
+4. 不得编造资料中没有出现的事实；
+5. 使用统一的全局来源编号；
+6. 明确区分事实、分析和推断；
+7. 输出结构清晰的 Markdown 研究报告。
+""".strip()
+
+
+def build_reporting_prompt(
+    topic: str,
+    summaries: list[TaskSummary],
+) -> str:
+    """
+    根据多个子任务总结构建最终报告提示词。
+
+    该函数会：
+
+    1. 整理所有子任务总结；
+    2. 对所有来源 URL 去重；
+    3. 为来源分配统一的全局编号；
+    4. 建立任务内部来源编号与全局编号的对应关系；
+    5. 构建最终报告生成提示词。
+    """
+
+    if not isinstance(topic, str):
+        raise TypeError(
+            "topic 必须是字符串，"
+            f"实际类型为：{type(topic).__name__}"
+        )
+
+    cleaned_topic = topic.strip()
+
+    if not cleaned_topic:
+        raise ValueError(
+            "研究主题不能为空。"
+        )
+
+    if not summaries:
+        raise ValueError(
+            "子任务总结不能为空，无法生成最终报告。"
+        )
+
+    global_sources: list[SearchResult] = []
+
+    # 标准化 URL -> 全局来源编号
+    source_number_map: dict[str, int] = {}
+
+    formatted_task_sections: list[str] = []
+
+    for summary_index, task_summary in enumerate(
+        summaries,
+        start=1,
+    ):
+        if not isinstance(
+            task_summary,
+            TaskSummary,
+        ):
+            raise TypeError(
+                "summaries 中的元素必须是 TaskSummary，"
+                f"第 {summary_index} 个元素实际类型为："
+                f"{type(task_summary).__name__}"
+            )
+
+        local_to_global_lines: list[str] = []
+
+        for local_index, source in enumerate(
+            task_summary.sources,
+            start=1,
+        ):
+            normalized_url = normalize_url(
+                source.url
+            )
+
+            source_key = (
+                normalized_url
+                or source.url.strip()
+            )
+
+            if source_key not in source_number_map:
+                global_sources.append(source)
+
+                source_number_map[source_key] = (
+                    len(global_sources)
+                )
+
+            global_number = source_number_map[
+                source_key
+            ]
+
+            local_to_global_lines.append(
+                f"- 任务内来源 [{local_index}] "
+                f"对应全局来源 [{global_number}]"
+            )
+
+        if local_to_global_lines:
+            source_mapping_text = "\n".join(
+                local_to_global_lines
+            )
+        else:
+            source_mapping_text = (
+                "- 当前子任务没有可用来源"
+            )
+
+        task = task_summary.task
+
+        formatted_task_sections.append(
+            f"""
+### 子任务 {task.id}：{task.title}
+
+研究目的：
+{task.intent}
+
+搜索语句：
+{task.query}
+
+子任务总结：
+{task_summary.summary}
+
+来源编号对应关系：
+{source_mapping_text}
+""".strip()
+        )
+
+    formatted_global_sources: list[str] = []
+
+    for global_number, source in enumerate(
+        global_sources,
+        start=1,
+    ):
+        snippet = (
+            source.snippet
+            or "该来源没有提供摘要。"
+        )
+
+        formatted_global_sources.append(
+            f"""
+[{global_number}]
+标题：{source.title}
+URL：{source.url}
+摘要：
+{snippet}
+""".strip()
+        )
+
+    task_sections_text = "\n\n".join(
+        formatted_task_sections
+    )
+
+    global_sources_text = "\n\n".join(
+        formatted_global_sources
+    )
+
+    return f"""
+请根据下面的研究主题、子任务总结和全局来源列表，
+生成一份完整的 Markdown 深度研究报告。
+
+研究主题：
+{cleaned_topic}
+
+以下是已经完成的子任务总结：
+
+{task_sections_text}
+
+以下是去重后的全局来源列表：
+
+{global_sources_text}
+
+报告要求：
+
+1. 只使用上面提供的子任务总结和资料来源；
+2. 不得添加现有资料中没有出现的事实；
+3. 正文引用必须使用全局来源编号，例如 [1]、[2]；
+4. 不要继续使用子任务内部的局部来源编号；
+5. 同一结论由多个来源支持时，可以写成 [1][3]；
+6. 应当综合多个子任务，而不是机械拼接原始总结；
+7. 删除重复观点；
+8. 对不同来源之间的差异或冲突进行说明；
+9. 推断性内容必须明确写成“基于现有资料可以推断”；
+10. 资料不足时明确写出“现有资料不足以确认”；
+11. 不要输出 JSON；
+12. 不要使用 Markdown 代码块包裹整篇报告；
+13. 参考资料中的编号必须与正文编号一致；
+14. 参考资料不得包含全局来源列表之外的 URL。
+
+报告必须使用以下结构：
+
+# {cleaned_topic}
+
+## 摘要
+
+简要介绍研究问题、研究范围和主要结论。
+
+## 研究背景
+
+说明该主题的基本背景及研究意义。
+
+## 主要发现
+
+按照合理逻辑划分三级标题，综合分析各个研究子任务。
+
+## 综合分析
+
+说明不同子任务之间的联系、共同结论和重要差异。
+
+## 局限性
+
+说明资料覆盖范围、来源质量、时效性以及证据限制。
+
+## 结论
+
+概括本次研究得出的核心结论。
+
+## 参考资料
+
+使用下面的格式列出所有在正文中实际引用的资料：
+
+[1] [来源标题](来源 URL)
+[2] [来源标题](来源 URL)
 """.strip()
