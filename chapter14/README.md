@@ -27,8 +27,8 @@
 - [x] 实现任务总结服务
 - [x] 实现笔记持久化
 - [x] 实现最终报告服务
-- [ ] 实现完整 Deep Research Agent 工作流
-- [ ] 实现工作流测试
+- [x] 实现完整 Deep Research Agent 工作流
+- [x] 实现工作流测试
 - [ ] 接入 FastAPI
 - [ ] 接入 SSE
 
